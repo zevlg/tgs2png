@@ -8,16 +8,17 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <string.h>
+#include <assert.h>
 #include <stdio.h>
 
 #include <rlottie_capi.h>
 #include <png.h>
 #include <zlib.h>
 
-const char* version = "0.0.1";
+const char* version = "0.1.0";
 
 static bool show_info = false;
-static bool uncompress_input = false;
 static int start_frame = 0;
 static int nframes = -1;
 static float scale = 1.0;
@@ -27,9 +28,9 @@ static int height = 0;
 static float speed = 1.0;
 
 struct tgs_png {
-        png_structp png = NULL;
-        png_infop info = NULL;
-        png_bytep rows = NULL;
+        png_structp png;
+        png_infop info;
+        png_bytep rows;
 
         /*
          * timeval of last flush
@@ -44,7 +45,7 @@ struct tgs_png {
 static int
 tgs_render_frame(const Lottie_Animation* tgsanim, size_t frame_num)
 {
-        png_set_write_fn();
+        /* png_set_write_fn(); */
 }
 
 void
@@ -53,7 +54,7 @@ tgs_png_init(struct tgs_png* png)
         memset(png, '\0', sizeof(struct tgs_png));
         png->png = NULL;
         png->info = NULL;
-
+        png->rows = NULL;
 }
 
 void
@@ -103,7 +104,7 @@ tgs_loop_once(const Lottie_Animation* tgsanim)
 
                 tgs_png_render(&tgspng, tgsanim, ++frame);
                 /* TODO: sleep */
-        } while (frame < frames_count);
+        } while (frame < stop_frame);
 
 out:
         tgs_png_fini(&tgspng);
@@ -115,10 +116,32 @@ tgs_animate(char* input)
 {
         Lottie_Animation* tgsanim;
 
-        tgsanim = lottie_animation_from_file(input);
+        if (!strcmp(input, "-")) {
+                /* Read lottie data from stdin */
+#define RDSIZE 4096
+                size_t dcap = RDSIZE + 1;
+                char* data = malloc(dcap);
+                assert(data != NULL);
+                size_t doff = 0;
+
+                ssize_t rlen;
+                while ((rlen = read(0, &data[doff], dcap - 1 - doff)) > 0) {
+                        doff += rlen;
+                        if (doff >= (dcap - 1)) {
+                                dcap += RDSIZE;
+                                data = realloc(data, dcap);
+                                assert(data != NULL);
+                        }
+                }
+                data[doff] = '\0';
+                tgsanim = lottie_animation_from_data(data, "", "");
+                free(data);
+#undef RDSIZE
+        } else {
+                tgsanim = lottie_animation_from_file(input);
+        }
         if (tgsanim == NULL) {
                 fprintf(stderr, "ERR Can't open: %s\n", input);
-                fprintf(stderr, "Forgot to specify -u for gzipped tgs?\n");
                 return -1;
         }
 
@@ -130,7 +153,7 @@ tgs_animate(char* input)
                 lottie_animation_get_size(tgsanim, &xw, &xh);
 
                 printf("%s: %zux%zu, frames=%zu, fps=%.2f, duration=%.2fs\n",
-                       input, xw, xh, fps, frames, dur);
+                       input, xw, xh, frames, fps, dur);
                 return 0;
                 /* NOT REACHED */
         }
@@ -157,12 +180,12 @@ static void
 usage(char* prog)
 {
         printf("Version %s\n", version);
-        printf("usage: %s [-ui] [-l N] [-z Z] [-o N] [-n N] [-s WxH] <file.tgs>\n",
+        printf("usage: %s [-i] [-l N] [-z Z] [-o N] [-n N] [-s WxH] INPUT\n",
                prog);
+        printf("INPUT could be filename, or -\n");
         printf("\t-i       Show info about file.tgs\n");
         printf("\t-s WxH   Size of resulting png files\n");
         printf("\n-z Z     Zoom by Z factor, not used if -s is specified\n");
-        printf("\t-u       Uncompress input\n");
         printf("\t-l LOOP  Loop for LOOP times, default=1\n");
         printf("\t-o O     Start from O frame\n");
         printf("\t-n N     Stop after N frames\n");
@@ -174,13 +197,10 @@ int
 main(int ac, char** av)
 {
         int ch;
-        while ((ch = getopt(ac, av, "ihus:o:n:l:z:")) != -1) {
+        while ((ch = getopt(ac, av, "ihs:o:n:l:z:")) != -1) {
                 switch (ch) {
                 case 'i':
                         show_info = true;
-                        break;
-                case 'u':
-                        uncompress_input = true;
                         break;
                 case 'n':
                         nframes = atoi(optarg);
