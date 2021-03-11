@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.3)
 
 project(tgs2png VERSION 0.1.0 LANGUAGES C)
 
+add_compile_options(-Wall -Werror)
+
+option (USE_ASAN "build all executables with asan" OFF)
+if (USE_ASAN)
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address")
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libasan")
+  endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+endif (USE_ASAN)
 
 # binary
 add_executable(tgs2png "tgs2png.c")
