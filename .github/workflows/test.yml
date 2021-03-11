@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    paths-ignore:
+    - 'README.md'
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-cmake-build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # os: [macos-latest, ubuntu-latest, windows-latest]
+        # include:
+        #   - os: windows-latest
+        #     CC: gcc
+            
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Linux env
+        run: sudo apt-get -y install librlottie-dev libpng-dev
+        if: "contains( matrix.os, 'ubuntu')"
+
+      - name: run-cmake
+        uses: lukka/run-cmake@v3.2
+        with:
+          cmakeGenerator: ${{ matrix.cmake_generator }}
+          cmakeBuildType: 'Release'
+          cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+          cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
+          useVcpkgToolchainFile: true
+          vcpkgTriplet: '${{ matrix.vcpkg_triplet }}'
+          buildDirectory: '${{ github.workspace }}/build'
+          cmakeAppendedArgs: ' ${{ matrix.cmake_platform_args }} -DCMAKE_BUILD_TYPE=Release"'
+          buildWithCMake: true
+          buildWithCMakeArgs: '--parallel --config Release'

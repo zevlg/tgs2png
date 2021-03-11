@@ -1,3 +1,5 @@
+[![CI test](https://github.com/zevlg/tgs2png/workflows/CI/badge.svg)](https://github.com/zevlg/tgs2png/actions)
+
 # tgs2png
 
 Convert Telegram's animated stickers in TGS format into series of PNG
