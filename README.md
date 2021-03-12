@@ -1,4 +1,5 @@
 [![CI test](https://github.com/zevlg/tgs2png/workflows/CI/badge.svg)](https://github.com/zevlg/tgs2png/actions)
+[![AUR version](https://img.shields.io/aur/version/tgs2png-git)](https://aur.archlinux.org/packages/tgs2png-git)
 
 # tgs2png
 
