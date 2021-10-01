@@ -17,10 +17,11 @@
 #include <rlottie_capi.h>
 #include <png.h>
 
-const char* version = "0.2.0";
+const char* version = "0.3.0";
 
 static bool debug = false;
 static bool show_info = false;
+static bool h_flip = false;
 static int start_frame = 0;
 static int nframes = -1;
 static float scale = 1.0;
@@ -173,6 +174,17 @@ tgs_png_render(struct tgs_png* tgs, Lottie_Animation* tgsanim, size_t frame_num)
 
         lottie_animation_render(tgsanim, frame_num, (uint32_t*)tgs->buffer,
                                 width, height, width * 4);
+        if (h_flip) {
+                /* Horizontally flip image by swapping bytes in a row */
+                for (int r = 0; r < height; r++) {
+                        uint32_t* row = (uint32_t*)tgs->rows[r];
+                        for (int c = 0; c < width/2; c++) {
+                                uint32_t temp = row[c];
+                                row[c] = row[width-c-1];
+                                row[width-c-1] = temp;
+                        }
+                }
+        }
 
         /* Write PNG image into tgs->data */
         png_structp png;
@@ -330,10 +342,11 @@ static void
 usage(char* prog)
 {
         printf("Version %s\n", version);
-        printf("usage: %s [-id] [-c L] [-l N] [-z Z] [-o N] [-n N] [-s WxH] INPUT\n",
+        printf("usage: %s [-idf] [-c L] [-l N] [-z Z] [-o N] [-n N] [-s WxH] INPUT\n",
                prog);
         printf("INPUT could be filename, or -\n");
         printf("\nOptions:\n");
+        printf("  -f       Horizontally flip resulting image\n");
         printf("  -d       Debug run, do not generate PNGs\n");
         printf("  -i       Show info about file.tgs\n");
         printf("  -s WxH   Size of resulting png files\n");
@@ -351,8 +364,11 @@ int
 main(int ac, char** av)
 {
         int ch;
-        while ((ch = getopt(ac, av, "dihc:s:o:n:l:z:")) != -1) {
+        while ((ch = getopt(ac, av, "fdihc:s:o:n:l:z:")) != -1) {
                 switch (ch) {
+                case 'f':
+                        h_flip = true;
+                        break;
                 case 'c':
                         compress_level = atoi(optarg);
                         break;
