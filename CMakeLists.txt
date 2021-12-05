@@ -21,3 +21,5 @@ endif (USE_ASAN)
 add_executable(tgs2png "tgs2png.c")
 target_compile_options(tgs2png PRIVATE)
 target_link_libraries(tgs2png ${RLOTTIE_LIBRARIES} ${PNG_LIBRARIES} m)
+
+install(TARGETS tgs2png DESTINATION ${CMAKE_INSTALL_BINDIR})
